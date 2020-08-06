@@ -45,7 +45,7 @@ namespace MCGalaxy.Core {
                 // TODO: Chat.MessageFrom if target is online?
                 Player who = PlayerInfo.FindExact(e.Target);
                 // TODO: who.SharesChatWith
-                Chat.Message(ChatScope.Global, e.FormatMessage(e.TargetName, action),
+                Chat.Message(ChatScope.AllChat, e.FormatMessage(e.TargetName, action),
                              null, null, true);
             } else {
                 Chat.MessageOps(e.FormatMessage(e.TargetName, action));

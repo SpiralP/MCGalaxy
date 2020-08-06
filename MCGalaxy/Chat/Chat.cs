@@ -38,6 +38,9 @@ namespace MCGalaxy {
         Perms,
         /// <summary> Message to a specific player </summary>
         PM,
+
+        /// <summary> Messages all players on the server except for those ignoring all chat </summary>
+        AllChat,
     }
     
     public delegate bool ChatMessageFilter(Player pl, object arg);
@@ -82,6 +85,9 @@ namespace MCGalaxy {
         
 
         public static bool FilterAll(Player pl, object arg) { return true; }
+        public static bool FilterAllChat(Player pl, object arg) {
+            return pl.IsSuper || !pl.Ignores.All;
+        }
         public static bool FilterGlobal(Player pl, object arg) {
             return pl.IsSuper || (pl.level.SeesServerWideChat && !pl.Ignores.All);
         }
@@ -98,6 +104,7 @@ namespace MCGalaxy {
         public static ChatMessageFilter[] scopeFilters = new ChatMessageFilter[] {
             FilterAll, FilterGlobal, FilterLevel, DeprecatedFilter, 
             DeprecatedFilter, FilterRank, FilterPerms, FilterPM,
+            FilterAllChat,
         };
         
         /// <summary> Filters chat to only players that can see the source player. </summary>
@@ -107,6 +114,7 @@ namespace MCGalaxy {
  
         
         public static void MessageAll(string msg) { Message(ChatScope.All, msg, null, null); }
+        public static void MessageAllChat(string msg) { Message(ChatScope.AllChat, msg, null, null); }
         public static void MessageGlobal(string msg) { Message(ChatScope.Global, msg, null, null); }
         public static void MessageOps(string msg) {
             Message(ChatScope.Perms, msg, OpchatPerms, null);
