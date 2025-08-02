@@ -711,6 +711,7 @@
     <Compile Include="util\ExtrasCollection.cs" />
     <Compile Include="properties\AssemblyInfo.cs" />
     <Compile Include="Database\PlayerDB.cs" />
+    <Compile Include="Plugins\marry.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\Changelog.txt">
