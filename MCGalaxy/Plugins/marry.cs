@@ -1,6 +1,5 @@
 using System;
 using MCGalaxy;
-using MCGalaxy.Commands;
 using MCGalaxy.DB;
 using System.Collections.Generic;
 
@@ -40,26 +39,48 @@ namespace Core {
         }
 
         static void FormatMarriedTo(Player p, string who) {
-            string data = GetMarriedPlayer(who);
-            if (data == null) return;
-            p.Message("  Married to {0}", p.FormatNick(data));
+            List<string> names = GetMarriedPlayers(who);
+            if (names.Count == 0) return;
+            p.Message("  Married to {0}", names.Join((name) => p.FormatNick(name), ", "));
         }
 
-        public static string GetMarriedPlayer(string name) {
+        public static List<string> GetMarriedPlayers(string name) {
             string data = marriages.Get(name);
-            if (data == null) return null;
-            return data;
+            if (data == null) return new List<string>();
+            return new List<string>(data.Split(','));
         }
 
-        public static void UpdateMarriedPlayer(string name, string marriedTo) {
-            marriages.Update(name, marriedTo);
-            marriages.Update(marriedTo, name);
+        public static void AddMarriedPair(string nameA, string nameB) {
+            var prevMarriedA = GetMarriedPlayers(nameA);
+            var prevMarriedB = GetMarriedPlayers(nameB);
+            if (!prevMarriedA.Contains(nameB)) {
+                prevMarriedA.Add(nameB);
+            }
+            if (!prevMarriedB.Contains(nameA)) {
+                prevMarriedB.Add(nameA);
+            }
+
+            marriages.Update(nameA, prevMarriedA.Join(","));
+            marriages.Update(nameB, prevMarriedB.Join(","));
             marriages.Save();
         }
 
-        public static void RemoveMarriedPlayer(string name, string marriedTo) {
-            marriages.Remove(name);
-            marriages.Remove(marriedTo);
+        public static void RemoveMarriedPlayer(string nameA, string nameB) {
+            var prevMarriedA = GetMarriedPlayers(nameA);
+            var prevMarriedB = GetMarriedPlayers(nameB);
+            prevMarriedA.Remove(nameB);
+            prevMarriedB.Remove(nameA);
+
+            if (prevMarriedA.Count == 0) {
+                marriages.Remove(nameA);
+            } else {
+                marriages.Update(nameA, prevMarriedA.Join(","));
+            }
+            if (prevMarriedB.Count == 0) {
+                marriages.Remove(nameB);
+            } else {
+                marriages.Update(nameB, prevMarriedB.Join(","));
+            }
             marriages.Save();
         }
     }
@@ -79,7 +100,7 @@ namespace Core {
                                p.ColoredName, proposer.ColoredName);
             p.Message("&bYou &aaccepted &b{0}&b's proposal", proposer.ColoredName);
 
-            MarryPlugin.UpdateMarriedPlayer(p.name, proposer.name);
+            MarryPlugin.AddMarriedPair(p.name, proposer.name);
             p.Extras.Remove(MarryPlugin.ExtraName);
         }
 
@@ -107,23 +128,16 @@ namespace Core {
         protected Player CheckProposal(Player p) {
             string name = p.Extras.GetString(MarryPlugin.ExtraName);
             if (name == null) {
-                p.Message("You do not have a pending marriage proposal."); return null;
+                p.Message("You do not have a pending marriage proposal.");
+                return null;
             }
 
             Player src = PlayerInfo.FindExact(name);
             if (src == null) {
-                p.Message("The person who proposed to marry you isn't online."); return null;
-            }
-
-            if (MarryPlugin.GetMarriedPlayer(name) != null) {
-                p.Message(name + " is already married to someone else.");
-                p.Extras.Remove(MarryPlugin.ExtraName); return null;
-            }
-
-            if (MarryPlugin.GetMarriedPlayer(p.name) != null) {
-                p.Message("You are already married to someone else.");
+                p.Message("The person who proposed to marry you isn't online.");
                 return null;
             }
+
             return src;
         }
 
@@ -138,21 +152,46 @@ namespace Core {
         public override string type { get { return "fun"; } }
 
         public override void Use(Player p, string message) {
-            string marriedTo = MarryPlugin.GetMarriedPlayer(p.name);
-            if (marriedTo == null) { p.Message("You are not married to anyone."); return; }
+            string name = message.Trim();
 
-            MarryPlugin.RemoveMarriedPlayer(p.name, marriedTo);
-            Player partner = PlayerInfo.FindExact(marriedTo);
+            List<string> marriedTo = MarryPlugin.GetMarriedPlayers(p.name);
+            if (marriedTo.Count == 0) {
+                p.Message("You are not married to anyone.");
+                return;
+            }
 
-            Chat.MessageGlobal("-{0}%S just divorced {1}%S-",
-                               p.ColoredName, p.FormatNick(marriedTo));
-            if (partner != null)
+            if (name.Length == 0) {
+                if (marriedTo.Count == 1) {
+                    name = marriedTo[0];
+                } else {
+                    Help(p);
+                    p.Message("You are married to multiple players. Please specify one.");
+                    p.Message("Married to: {0}", marriedTo.Join(", "));
+                    return;
+                }
+            }
+
+            if (!marriedTo.Contains(name)) {
+                name = Server.FromRawUsername(name);
+                if (!marriedTo.Contains(name)) {
+                    p.Message("You are not married to {0}", name);
+                    return;
+                }
+            }
+
+            MarryPlugin.RemoveMarriedPlayer(p.name, name);
+            Chat.MessageGlobal("-{0}%S just divorced {1}%S-", p.ColoredName, p.FormatNick(name));
+
+            Player partner = PlayerInfo.FindExact(name);
+            if (partner != null) {
                 partner.Message("{0} &bjust divorced you.", p.ColoredName);
+            }
         }
 
         public override void Help(Player p) {
-            p.Message("%T/Divorce");
+            p.Message("%T/Divorce <player>");
             p.Message("%HLeaves the player you are currently married to.");
+            p.Message("%HIf no player is specified, you will divorce your current spouse.");
         }
     }
 
@@ -176,18 +215,30 @@ namespace Core {
         //------------------------------
 
         public override void Use(Player p, string message) {
-            string entry = MarryPlugin.GetMarriedPlayer(p.name);
-            if (entry != null) {
-                p.Message("You are already married to someone"); return;
+            string name = message.Trim();
+            if (name.Length == 0) {
+                Help(p);
+                return;
             }
 
             Player partner = PlayerInfo.FindMatches(p, message);
             if (partner == null) return;
-            if (partner == p) { p.Message("You cannot marry yourself."); return; }
+            if (partner == p) {
+                p.Message("You cannot marry yourself.");
+                return;
+            }
 
-            entry = MarryPlugin.GetMarriedPlayer(partner.name);
-            if (entry != null) {
-                p.Message("{0} %Sis already married to someone else", partner.ColoredName); return;
+            List<string> marriedTo = MarryPlugin.GetMarriedPlayers(p.name);
+            List<string> partnerMarriedTo = MarryPlugin.GetMarriedPlayers(partner.name);
+
+            if (marriedTo.Contains(partner.name) || partnerMarriedTo.Contains(p.name)) {
+                p.Message("You are already married to {0}", partner.ColoredName);
+
+                if (!marriedTo.Contains(partner.name) || !partnerMarriedTo.Contains(p.name)) {
+                    // fix storage if one of the players is not married to the other
+                    MarryPlugin.AddMarriedPair(p.name, partner.name);
+                }
+                return;
             }
 
             //cooldown ------------------
