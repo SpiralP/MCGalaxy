@@ -41,7 +41,7 @@ namespace Core {
         static void FormatMarriedTo(Player p, string who) {
             List<string> names = GetMarriedPlayers(who);
             if (names.Count == 0) return;
-            p.Message("  Married to {0}", names.Join((name) => p.FormatNick(name), ", "));
+            p.Message("  Married to {0}", names.Join((name) => p.FormatNick(name), "&S, "));
         }
 
         public static List<string> GetMarriedPlayers(string name) {
