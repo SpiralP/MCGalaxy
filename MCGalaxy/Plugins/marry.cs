@@ -259,6 +259,11 @@ namespace Core {
                 return;
             }
 
+            if (MarryPlugin.Proposal.Get(partner) == p.name) {
+                p.Message("You have already proposed to {0}!", partner.ColoredName);
+                return;
+            }
+
             List<string> marriedTo = MarryPlugin.Married.Get(p.name);
             List<string> partnerMarriedTo = MarryPlugin.Married.Get(partner.name);
 
