@@ -97,12 +97,9 @@ namespace Core {
 
             static ConcurrentDictionary<string, DateTime> cooldowns = new ConcurrentDictionary<string, DateTime>();
 
-            public static void AddTimeout(string name, int days) {
-                TimeSpan coolDown = TimeSpan.FromDays(days);
-                cooldowns[name] = DateTime.UtcNow + coolDown;
-            }
             public static void AddTimeout(Player p, int days) {
-                AddTimeout(p.name, days);
+                TimeSpan coolDown = TimeSpan.FromDays(days);
+                cooldowns[p.name] = DateTime.UtcNow + coolDown;
             }
 
             public static TimeSpan GetCooldown(Player p) {
@@ -184,6 +181,7 @@ namespace Core {
             p.Message("&bYou &cdenied &b{0}&b's proposal", proposer.ColoredName);
 
             MarryPlugin.Proposal.Remove(p);
+            MarryPlugin.Proposal.AddTimeout(proposer, 1);
         }
     }
 
@@ -247,6 +245,13 @@ namespace Core {
                 return;
             }
 
+            TimeSpan coolDown = MarryPlugin.Proposal.GetCooldown(p);
+            if (coolDown.TotalSeconds > 0) {
+                coolDown += new TimeSpan(0, 0, 0, 1, 0);
+                p.Message("You must wait {0} to emotionally recover before proposing again.", coolDown.Shorten(true, false));
+                return;
+            }
+
             Player partner = PlayerInfo.FindMatches(p, message);
             if (partner == null) { return; }
             if (partner == p) {
@@ -266,14 +271,6 @@ namespace Core {
                 }
                 return;
             }
-
-            TimeSpan coolDown = MarryPlugin.Proposal.GetCooldown(p);
-            if (coolDown.TotalSeconds > 0) {
-                coolDown += new TimeSpan(0, 0, 0, 1, 0);
-                p.Message("You must wait {0} before proposing again.", coolDown.Shorten(true, false));
-                return;
-            }
-            MarryPlugin.Proposal.AddTimeout(p, 1);
 
             Chat.MessageGlobal("-{0}%S gets down on one knee-",
                                p.ColoredName);
