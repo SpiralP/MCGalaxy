@@ -2,13 +2,14 @@ using System;
 using MCGalaxy;
 using MCGalaxy.DB;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Core {
     public sealed class MarryPlugin : Plugin {
-        public override string name { get { return "marryplugin"; } }
-        public override string creator { get { return ""; } }
-        public override string welcome { get { return ""; } }
-        public override string MCGalaxy_Version { get { return "1.9.0.7"; } }
+        public override string name => "marryplugin";
+        public override string creator => "";
+        public override string welcome => "";
+        public override string MCGalaxy_Version => "1.9.0.7";
 
         static OnlineStatPrinter onlineLine;
         static OfflineStatPrinter offlineLine;
@@ -94,24 +95,18 @@ namespace Core {
         public static class Proposal {
             public const string ExtraKey = "__Marry_Name";
 
-            static readonly object locker = new object();
-            static Dictionary<string, DateTime> cooldowns = new Dictionary<string, DateTime>();
+            static ConcurrentDictionary<string, DateTime> cooldowns = new ConcurrentDictionary<string, DateTime>();
 
             public static void AddTimeout(string name, int days) {
                 TimeSpan coolDown = TimeSpan.FromDays(days);
-                lock (locker) {
-                    cooldowns[name] = DateTime.UtcNow + coolDown;
-                }
+                cooldowns[name] = DateTime.UtcNow + coolDown;
             }
             public static void AddTimeout(Player p, int days) {
                 AddTimeout(p.name, days);
             }
 
             public static TimeSpan GetCooldown(Player p) {
-                DateTime expires;
-                lock (locker) {
-                    cooldowns.TryGetValue(p.name, out expires);
-                }
+                cooldowns.TryGetValue(p.name, out DateTime expires);
                 return expires - DateTime.UtcNow;
             }
 
@@ -146,15 +141,15 @@ namespace Core {
     }
 
     public abstract class CmdBase : Command {
-        public override string shortcut { get { return ""; } }
-        public override string type { get { return "fun"; } }
-        public override LevelPermission defaultRank { get { return LevelPermission.Guest; } }
-        public override bool museumUsable { get { return true; } }
-        public override bool MessageBlockRestricted { get { return true; } }
+        public override string shortcut => "";
+        public override string type => "fun";
+        public override LevelPermission defaultRank => LevelPermission.Guest;
+        public override bool museumUsable => true;
+        public override bool MessageBlockRestricted => true;
     }
 
     public sealed class CmdAccept : CmdBase {
-        public override string name { get { return "Accept"; } }
+        public override string name => "Accept";
 
         public override void Help(Player p) {
             p.Message("%T/Accept %H- Accepts a pending marriage proposal.");
@@ -174,7 +169,7 @@ namespace Core {
     }
 
     public sealed class CmdDeny : CmdBase {
-        public override string name { get { return "Deny"; } }
+        public override string name => "Deny";
 
         public override void Help(Player p) {
             p.Message("%T/Deny %H- Denies a pending marriage proposal.");
@@ -193,7 +188,7 @@ namespace Core {
     }
 
     public sealed class CmdDivorce : CmdBase {
-        public override string name { get { return "Divorce"; } }
+        public override string name => "Divorce";
 
         public override void Help(Player p) {
             p.Message("%T/Divorce <player>");
@@ -233,14 +228,12 @@ namespace Core {
             Chat.MessageGlobal("-{0}%S just divorced {1}%S-", p.ColoredName, p.FormatNick(name));
 
             Player partner = PlayerInfo.FindExact(name);
-            if (partner != null) {
-                partner.Message("{0} &bjust divorced you.", p.ColoredName);
-            }
+            partner?.Message("{0} &bjust divorced you.", p.ColoredName);
         }
     }
 
     public sealed class CmdMarry : CmdBase {
-        public override string name { get { return "Marry"; } }
+        public override string name => "Marry";
 
         public override void Help(Player p) {
             p.Message("%T/Marry [player]");
