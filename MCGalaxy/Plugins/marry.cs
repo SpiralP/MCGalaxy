@@ -223,6 +223,7 @@ namespace Core {
                 name = Server.FromRawUsername(name);
                 if (!marriedTo.Contains(name)) {
                     p.Message("You are not married to {0}", name);
+                    p.Message("Married to: {0}", marriedTo.Join(", "));
                     return;
                 }
             }
