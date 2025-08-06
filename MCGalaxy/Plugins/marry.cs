@@ -214,6 +214,11 @@ namespace Core {
                 }
             }
 
+            Player partner = PlayerInfo.FindMatches(p, name);
+            if (partner != null) {
+                name = partner.name;
+            }
+
             if (!marriedTo.Contains(name)) {
                 name = Server.FromRawUsername(name);
                 if (!marriedTo.Contains(name)) {
@@ -224,8 +229,6 @@ namespace Core {
 
             MarryPlugin.Married.RemovePair(p.name, name);
             Chat.MessageGlobal("-{0}%S just divorced {1}%S-", p.ColoredName, p.FormatNick(name));
-
-            Player partner = PlayerInfo.FindExact(name);
             partner?.Message("{0} &bjust divorced you.", p.ColoredName);
         }
     }
