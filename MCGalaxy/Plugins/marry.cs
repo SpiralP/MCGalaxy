@@ -194,9 +194,7 @@ namespace Core {
             p.Message("%HIf no player is specified, you will divorce your current spouse.");
         }
 
-        public override void Use(Player p, string message) {
-            string name = message.Trim();
-
+        public override void Use(Player p, string name) {
             List<string> marriedTo = MarryPlugin.Married.Get(p.name);
             if (marriedTo.Count == 0) {
                 p.Message("You are not married to anyone.");
@@ -241,8 +239,7 @@ namespace Core {
             p.Message("%HProposes to the given player.");
         }
 
-        public override void Use(Player p, string message) {
-            string name = message.Trim();
+        public override void Use(Player p, string name) {
             if (name.Length == 0) {
                 Help(p);
                 return;
@@ -255,7 +252,7 @@ namespace Core {
                 return;
             }
 
-            Player partner = PlayerInfo.FindMatches(p, message);
+            Player partner = PlayerInfo.FindMatches(p, name);
             if (partner == null) { return; }
             if (partner == p) {
                 p.Message("You cannot marry yourself.");
