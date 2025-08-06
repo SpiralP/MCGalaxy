@@ -214,22 +214,21 @@ namespace Core {
                 }
             }
 
-            Player partner = PlayerInfo.FindMatches(p, name);
-            if (partner != null) {
-                name = partner.name;
+            string partnerName = PlayerInfo.FindMatchesPreferOnline(p, name);
+            if (partnerName != null) {
+                name = partnerName;
             }
 
             if (!marriedTo.Contains(name)) {
-                name = Server.FromRawUsername(name);
-                if (!marriedTo.Contains(name)) {
-                    p.Message("You are not married to {0}", name);
-                    p.Message("Married to: {0}", marriedTo.Join(", "));
-                    return;
-                }
+                p.Message("You are not married to {0}", name);
+                p.Message("Married to: {0}", marriedTo.Join(", "));
+                return;
             }
 
             MarryPlugin.Married.RemovePair(p.name, name);
             Chat.MessageGlobal("-{0}%S just divorced {1}%S-", p.ColoredName, p.FormatNick(name));
+
+            Player partner = PlayerInfo.FindExact(name);
             partner?.Message("{0} &bjust divorced you.", p.ColoredName);
         }
     }
